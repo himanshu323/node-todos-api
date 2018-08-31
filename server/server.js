@@ -1,7 +1,10 @@
 const express=require("express");
 const bodyParser=require("body-parser"); 
 const {ObjectID}=require("mongodb");
+const _=require("lodash");
 
+
+let config=require("../config/config")
 let {mongoose}=require("./db/mongoose")
 let {Todo}=require("./models/todos")
 let {User}=require("./models/users")
@@ -53,6 +56,50 @@ app.get("/todos/:id",(req,resp)=>{
 
 })
 
+app.delete("/todos/:id",(req,resp)=>{
+let id=req.params.id;
+    if(!ObjectID.isValid(id)){
+        return resp.status(400).send();
+    }
+
+    Todo.findByIdAndRemove(id).then((todo)=>{
+        if(!todo){
+            return resp.status(404).send();
+        }
+        resp.send({todo});
+    })
+})
+
+app.patch("/todos/:id",(req,resp)=>{
+
+    let id=req.params.id;
+
+    if(!ObjectID.isValid(id)){
+        return resp.status(400).send();
+    }
+        let body=_.pick(req.body,['text','completed']);
+
+        if(body.completed && _.isBoolean(body.completed)){
+            body.completedAt=new Date().getTime();
+        }
+        else{
+            body.completed=false;
+            body.completedAt=null;
+        }
+
+        Todo.findByIdAndUpdate(id,{
+            $set:body
+        },{new:true}).then((res)=>{
+
+                if(!res){
+                    return resp.status(404).send();
+                }
+
+                resp.send({todo:res});
+        }).catch((e)=>resp.send(e))
+
+})
+
 
 
 
@@ -84,6 +131,7 @@ module.exports={app};
 // },(err)=>{
 //     console.log("unable to add" , err);
 // })
+
 
 
 

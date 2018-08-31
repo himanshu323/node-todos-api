@@ -10,7 +10,9 @@ let todos=[{
     text:"Complete Angular"
 },{
     _id:new ObjectID(),
-    text:"Complete NodeJS"
+    text:"Complete NodeJS",
+    completed:true,
+    completedAt:88899
 }]
 
 
@@ -117,4 +119,82 @@ describe("Test the Todos App",()=>{
             .end(done);
         })
      })
+
+     describe("Test the Delete Todos :id",()=>{
+
+        it("when user submits a valid todo ID",(done)=>{
+            let hexId=todos[0]._id.toHexString();
+            request(app)
+            .delete(`/todos/${hexId}`)
+            .expect(200)
+            .expect((resp)=>{
+                expect(resp.body.todo._id.toString()).toBe(todos[0]._id.toHexString());
+                
+                
+            })
+            .end((err,resp)=>{
+                if(err){
+                    return done(err);
+                }
+
+                Todo.findById(hexId).then((res)=>{
+                    expect(res).toNotExist();
+                    done();
+                }).catch((e)=>done(e))
+            })
+            
+        })
+
+        it("Submits an invalid id",(done)=>{
+            request(app)
+            .delete("/todos/321")
+            .expect(400)
+            .end(done);
+        })
+
+        it("Submits a id not in collection",(done)=>{
+            request(app)
+            .delete(`/todos/${new ObjectID().toHexString()}`)
+            .expect(404)
+            .end(done);
+        })
+
+
+     })
+
+     describe("Test the Update Todos:id",()=>{
+
+        it("User updates the record for valid id with completed as true",(done)=>{
+            let text="Bye Bye"
+            let completed=true;
+            let hexId=todos[0]._id.toHexString();
+            request(app)
+            .patch(`/todos/${hexId}`)
+            .send({text,completed})
+            .expect(200)
+            .expect((resp)=>{
+                expect(resp.body.todo.text).toBe(text);
+                expect(resp.body.todo.completed).toBe(completed);
+                expect(resp.body.todo.completedAt).toBeA('number');
+            })
+            .end(done);
+        })
+
+        it("User updates the record for valid id with completed as false",(done)=>{
+            let text="World"
+            let completed=false;
+            let hexId=todos[1]._id.toHexString();
+            request(app)
+            .patch(`/todos/${hexId}`)
+            .send({text,completed})
+            .expect(200)
+            .expect((resp)=>{
+                expect(resp.body.todo.text).toBe(text);
+                expect(resp.body.todo.completed).toBe(completed);
+                expect(resp.body.todo.completedAt).toNotExist();
+            })
+            .end(done);
+        })
+     })
+
 })
