@@ -8,6 +8,7 @@ let config=require("../config/config")
 let {mongoose}=require("./db/mongoose")
 let {Todo}=require("./models/todos")
 let {User}=require("./models/users")
+let {authenticate}=require("./middlewares/authenticate");
 
 
 let app=express();
@@ -17,9 +18,12 @@ let port=process.env.PORT || 3000;
 app.use(bodyParser.json())
 
 
-app.post("/todos",(req,resp)=>{
+app.post("/todos",authenticate,(req,resp)=>{
 
-    let todo=new Todo({text:req.body.text});
+    let todo=new Todo({
+        _creator:req.user._id,
+        text:req.body.text,
+        });
     todo.save().then((res)=>{
         resp.send(res);
     },(error)=>{
@@ -27,9 +31,9 @@ app.post("/todos",(req,resp)=>{
     })
 })
 
-app.get("/todos",(req,resp)=>{
+app.get("/todos",authenticate,(req,resp)=>{
 
-    Todo.find().then((todos)=>{
+    Todo.find({_creator:req.user._id}).then((todos)=>{
         resp.send({
             todos
         })
@@ -39,13 +43,13 @@ app.get("/todos",(req,resp)=>{
 )
 })
 
-app.get("/todos/:id",(req,resp)=>{
+app.get("/todos/:id",authenticate,(req,resp)=>{
 
     if(!ObjectID.isValid(req.params.id)){
         return resp.status(400).send();
     }
 
-    Todo.findById(req.params.id).then((res)=>{
+    Todo.findOne({_id:req.params.id,_creator:req.user._id}).then((res)=>{
         if(!res){
           return  resp.status(404).send();
         }
@@ -56,13 +60,14 @@ app.get("/todos/:id",(req,resp)=>{
 
 })
 
-app.delete("/todos/:id",(req,resp)=>{
+app.delete("/todos/:id",authenticate,(req,resp)=>{
 let id=req.params.id;
     if(!ObjectID.isValid(id)){
         return resp.status(400).send();
     }
 
-    Todo.findByIdAndRemove(id).then((todo)=>{
+    Todo.findOneAndRemove({_id:id,_creator:req.user._id}).then((todo)=>{
+
         if(!todo){
             return resp.status(404).send();
         }
@@ -70,7 +75,7 @@ let id=req.params.id;
     })
 })
 
-app.patch("/todos/:id",(req,resp)=>{
+app.patch("/todos/:id",authenticate,(req,resp)=>{
 
     let id=req.params.id;
 
@@ -87,7 +92,7 @@ app.patch("/todos/:id",(req,resp)=>{
             body.completedAt=null;
         }
 
-        Todo.findByIdAndUpdate(id,{
+        Todo.findOneAndUpdate({_id:id,_creator:req.user._id},{
             $set:body
         },{new:true}).then((res)=>{
 
@@ -102,8 +107,73 @@ app.patch("/todos/:id",(req,resp)=>{
 
 
 
+app.get("/users/me",authenticate,(req,resp)=>{
+
+  
+        resp.send(req.user);
+    
+})
+
+app.post("/users",(req,resp)=>{
+
+  let body=  _.pick(req.body,['email','password']);
+  let user=new User(body);
+
+//   let token=user.generateAuthToken().
+//   then((token)=>{
+//     resp.header("x-auth",token).send(user);
+//   })
+//   .catch((e)=>resp.status(400).send(e))
+
+  user.generateAuthToken().
+  then((token)=>{
+    resp.header("x-auth",token).send(user);
+  })
+  .catch((e)=>resp.status(400).send(e))
+
+//   user.save().then((res)=>{
+//       return user.generateAuthToken()}).
+      
+//       then((token)=>{
+
+//         resp.header("x-auth",token).send(user);
+//       })
+     
+//   .catch((e)=>resp.status(400).send(e))
+
+    })
+
+
+app.post("/users/login",(req,resp)=>{
+
+
+   let body= _.pick(req.body,['email','password']);
+
+   User.findByCredentials(body.email,body.password).then((user)=>{
+       console.log("Usereee",user)
+       return user.generateAuthToken().then((token)=>{
+        resp.header('x-auth',token).send(user);
+       })
+
+   }).catch((e)=>{
+       console.log("Oyyyxs")
+       resp.status(400).send();
+   })
+})
+
+app.delete("/users/me/token",authenticate,(req,resp)=>{
+   console.log("Inside",req.user);
+ req.user.removeToken(req.token).then(()=>{
+     console.log("inside");
+     resp.send()
+ }).catch((e)=>{
+     
+   resp.status(400).send(); 
+ })
+})
 
 app.listen(port,()=>{
+
     console.log(`Server is running on port ${port}`)
 })
 
@@ -145,3 +215,5 @@ module.exports={app};
 // },(err)=>{
 //     console.log("Unabel to add",err);
 // })
+
+//
