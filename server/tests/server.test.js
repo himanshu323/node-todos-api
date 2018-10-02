@@ -77,7 +77,9 @@ describe("Test the Todos App",()=>{
         .expect(200)
         .expect((resp)=>{
             expect(resp.body.todos.length).toBe(1);
-            expect(resp.body.todos[0]).toInclude(todos[0]);
+            console.log(resp.body.todos[0]);
+            console.log(todos[0]);
+            expect(resp.body.todos[0]).toMatchObject({_id:todos[0]._id.toHexString(),text:todos[0].text});
         })
         .end(done);
     })
@@ -148,7 +150,7 @@ describe("Test the Todos App",()=>{
                 }
 
                 Todo.findById(hexId).then((res)=>{
-                    expect(res).toNotExist();
+                    expect(res).toBeFalsy();
                     done();
                 }).catch((e)=>done(e))
             })
@@ -187,7 +189,7 @@ describe("Test the Todos App",()=>{
                 }
 
                 Todo.findById(hexId).then((res)=>{
-                    expect(res).toExist();
+                    expect(res).toBeTruthy();
                     done();
                 }).catch((e)=>done(e))
             })
@@ -211,7 +213,7 @@ describe("Test the Todos App",()=>{
             .expect((resp)=>{
                 expect(resp.body.todo.text).toBe(text);
                 expect(resp.body.todo.completed).toBe(completed);
-                expect(resp.body.todo.completedAt).toBeA('number');
+                expect(typeof resp.body.todo.completedAt).toBe('number');
             })
             .end(done);
         })
@@ -228,7 +230,7 @@ describe("Test the Todos App",()=>{
             .expect((resp)=>{
                 expect(resp.body.todo.text).toBe(text);
                 expect(resp.body.todo.completed).toBe(completed);
-                expect(resp.body.todo.completedAt).toNotExist();
+                expect(resp.body.todo.completedAt).toBeFalsy();
             })
             .end(done);
         })
@@ -287,8 +289,8 @@ describe("Test the Todos App",()=>{
             .expect(200)
             .expect((resp)=>{
                 expect(resp.body.email).toBe(email);
-                expect(resp.body._id).toExist();
-                expect(resp.headers['x-auth']).toExist();
+                expect(resp.body._id).toBeTruthy();
+                expect(resp.headers['x-auth']).toBeTruthy();
             })
             .end((err)=>{
                 
@@ -297,9 +299,9 @@ describe("Test the Todos App",()=>{
                 }
                     User.findOne({email}).then((resp)=>{
 
-                        expect(resp).toExist();
+                        expect(resp).toBeTruthy();
                         expect(resp.email).toBe(email);
-                        expect(resp.password).toNotBe(password);
+                        expect(resp.password).not.toBe(password);
                        
                         done();
                         
@@ -344,7 +346,7 @@ describe("Test the Todos App",()=>{
                 })
                 .expect(200)
                 .expect((resp)=>{
-                    expect(resp.headers['x-auth']).toExist();
+                    expect(resp.headers['x-auth']).toBeTruthy();
                     expect(resp.body.email).toBe(users[1].email);
                 })
                 .end((err,resp)=>{
@@ -374,7 +376,7 @@ describe("Test the Todos App",()=>{
                 }).
                 expect(400)
                 .expect((resp)=>{
-                    expect(resp.headers['x-auth']).toNotExist();
+                    expect(resp.headers['x-auth']).toBeFalsy();
                     
                 })
                 .end((err,resp)=>{

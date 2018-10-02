@@ -123,17 +123,19 @@ console.log(password);
  
  //eturn new Promise((resolve,reject)=>{
 
-    // bcrypt.compare(password,user.password,(error,res)=>{
+    bcrypt.compare(password,user.password,(error,res)=>{
 
-    //     console.log("jJJJJ$$$")
         
         
-    //     if(res){
-    //         console.log("Successs$$$")
-    //         return Promise.resolve(user)
-    //     }else{ return Promise.reject();
-    //     }
-    // })
+        
+        if(res){
+           
+            return Promise.resolve(user)
+
+        }
+        else{ return Promise.reject();
+        }
+    })
 
 
 
